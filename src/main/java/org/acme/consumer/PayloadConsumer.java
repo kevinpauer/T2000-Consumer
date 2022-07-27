@@ -1,10 +1,7 @@
 package org.acme.consumer;
 
 import io.quarkus.runtime.StartupEvent;
-import io.smallrye.mutiny.Multi;
-import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
-import io.smallrye.reactive.messaging.kafka.Record;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Date;
@@ -18,7 +15,6 @@ import org.acme.dto.Result;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
-import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.jboss.logging.Logger;
 
 public class PayloadConsumer {
@@ -80,7 +76,7 @@ public class PayloadConsumer {
 
   private void sendResultToChannel() {
     Date date = new Date();
-    Result result = new Result(new Timestamp(date.getTime()), isSorted(resultArray));
+    Result result = new Result(1, new Timestamp(date.getTime()), isSorted(resultArray));
     resultEmitter.send(result);
   }
 }
