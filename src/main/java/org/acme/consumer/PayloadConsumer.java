@@ -5,13 +5,16 @@ import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.stream.Collectors;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import org.acme.dto.NumberPayload;
 import org.acme.dto.Result;
+import org.acme.dto.ResultPayload;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -24,20 +27,20 @@ public class PayloadConsumer {
 
   @Inject
   @Channel("result-topic")
-  Emitter<Result> resultEmitter;
+  Emitter<ResultPayload> resultEmitter;
 
   private Timestamp creationTimestamp;
   private Random random = new Random();
-  private Double[] resultArray = new Double[50000];
+  private List<Double> resultArray;
 
-  private static boolean isSorted(Double[] a) {
+  private static boolean isSorted(List<Double> a) {
     if (a == null) {
       return false;
-    } else if (a.length == 0) {
+    } else if (a.isEmpty()) {
       return true;
     }
-    for (int i = 0; i < a.length - 1; i++) {
-      if (a[i] > a[i + 1]) {
+    for (int i = 0; i < a.size() - 1; i++) {
+      if (a.get(i) > a.get(i + 1)) {
         return false;
       }
     }
@@ -51,7 +54,7 @@ public class PayloadConsumer {
 
   @Incoming("numbers-payload")
   public CompletionStage<Void> newPayload(KafkaRecord<Integer, NumberPayload> payload) {
-    Double[] numbersArray = payload.getPayload().getNumbersList();
+    List<Double> numbersArray = payload.getPayload().getNumbersList();
     logger.info(payload.getTimestamp());
     Date date = new Date();
     logger.info("Start arithmetic operation at: " + new Timestamp(date.getTime()));
@@ -59,25 +62,24 @@ public class PayloadConsumer {
     date = new Date();
     logger.info("End arithmetic operation at: " + new Timestamp(date.getTime()));
 
-    sendResultToChannel();
-
+    sendResultToChannel(payload.getPayload());
     return CompletableFuture.runAsync(()->{});
   }
 
-  private Double[] doArithmeticOperation(Double[] numbersArray) {
-    for (int i = 0; i < numbersArray.length; i++) {
+  private List<Double> doArithmeticOperation(List<Double> numbersArray) {
+    for (int i = 0; i < numbersArray.size(); i++) {
       for (int j = 0; j < 750; j++) {
-        numbersArray[i] = numbersArray[i] + 0 + random.nextDouble() * 1000000;
+        numbersArray.set(i, numbersArray.get(i) + 0 + random.nextDouble() * 1000000);
       }
     }
-    Arrays.sort(numbersArray);
-    return numbersArray;
+    return numbersArray.stream().sorted().collect(Collectors.toList());
   }
 
-  private void sendResultToChannel() {
+  private void sendResultToChannel(NumberPayload incomingPayloadData) {
     Date date = new Date();
     Result result = new Result(1, new Timestamp(date.getTime()), isSorted(resultArray));
-    resultEmitter.send(result);
+    ResultPayload resultPayload = new ResultPayload(incomingPayloadData.getId(), incomingPayloadData.getNumbersList(), incomingPayloadData.getTimestamp(), result);
+    resultEmitter.send(resultPayload);
   }
 }
 
