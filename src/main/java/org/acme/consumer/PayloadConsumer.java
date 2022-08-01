@@ -63,7 +63,7 @@ public class PayloadConsumer {
     logger.info("End arithmetic operation at: " + new Timestamp(date.getTime()));
 
     sendResultToChannel(payload.getPayload());
-    return CompletableFuture.runAsync(()->{});
+    return payload.ack();
   }
 
   private List<Double> doArithmeticOperation(List<Double> numbersArray) {
