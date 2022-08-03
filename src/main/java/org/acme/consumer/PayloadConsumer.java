@@ -54,22 +54,28 @@ public class PayloadConsumer {
 
   @Incoming("numbers-payload")
   public CompletionStage<Void> newPayload(KafkaRecord<Integer, NumberPayload> payload) {
-    List<Double> numbersArray = payload.getPayload().getNumbersList();
-    logger.info(payload.getTimestamp());
-    Date date = new Date();
-    logger.info("Start arithmetic operation at: " + new Timestamp(date.getTime()));
-    resultArray = doArithmeticOperation(numbersArray);
-    date = new Date();
-    logger.info("End arithmetic operation at: " + new Timestamp(date.getTime()));
+    try {
+      logger.info("payload: " + payload);
+      logger.info("payload: " + payload.getPayload());
+      List<Double> numbersArray = payload.getPayload().getNumbersList();
+      logger.info(payload.getTimestamp());
+      Date date = new Date();
+      logger.info("Start arithmetic operation at: " + new Timestamp(date.getTime()));
+      resultArray = doArithmeticOperation(numbersArray);
+      date = new Date();
+      logger.info("End arithmetic operation at: " + new Timestamp(date.getTime()));
+      sendResultToChannel(payload.getPayload());
+    } catch (Exception ex) {
+      logger.warn("newPayload failed!");
+    }
 
-    sendResultToChannel(payload.getPayload());
     return payload.ack();
   }
 
   private List<Double> doArithmeticOperation(List<Double> numbersArray) {
     for (int i = 0; i < numbersArray.size(); i++) {
       for (int j = 0; j < 750; j++) {
-        numbersArray.set(i, numbersArray.get(i) + 0 + random.nextDouble() * 1000000);
+        numbersArray.set(i, numbersArray.get(i) * -1);
       }
     }
     return numbersArray.stream().sorted().collect(Collectors.toList());
